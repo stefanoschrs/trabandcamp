@@ -95,6 +95,7 @@ func download(path string, track Track, album string){
 	defer output.Close()
 
 	var url = "http:" + track.FileURL.URL
+	// TODO: Progress bar maybe?
 	response, err := http.Get(url)
 	if err != nil {
 		fmt.Println("ERROR: Failed downloading", url, "-", err)
@@ -116,6 +117,7 @@ func main(){
 		panic("ERROR: Missing Band Name")
 	}
 
+	// TODO: Work on getting configuration from file
 	var path = "./data"
 	os.MkdirAll(path, 0777)
 
@@ -137,5 +139,6 @@ func main(){
 		}
 	}
 
+	// TODO: Implement channels
 	time.Sleep(10 * time.Hour)
 }
