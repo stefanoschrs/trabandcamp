@@ -1,0 +1,18 @@
+language: go
+
+install:
+  - go get github.com/parnurzeal/gorequest
+
+before_deploy:
+    - ./before-deploy.sh
+
+deploy:
+    provider: releases
+    api_key:
+        secure: JSBokiw5ceLwe9H0p/OGCfvsjj1QTRO7ITcmni/xZ8oNFnrJtvTa0kQEUXFsU/TW/jLa+AntS5yc9aS07z/NLwdiOX0YMAITqTSgzMuravvAGsUiLSgeyHFsNsMki+5FogaA0fqcoe1a1iPKjkg498Dtc0CYkiloWawBDLBO3lBrgVCJ/mivUpF+L4OB0xPbnpDb2aUGMqAp/ArlSBWaUjxVKeCgjsbwi9cxiuVrPxF0dzYW4W20K+i4p2WFAWsFK/9enljtW+0rQeEwlCkJ8UwrubkKSbG5zjmOKYyvX0jQZuJtSg3SOnWL7Rc7jRiFGaSCFa+1SgCvGglO7J1JwDSmwFqOrFpxv/uU092TuvpAQqOTXAItKgi5YlhVjCz3nYMo84O5ALJfFZtmRHMe+TimKSfvZPxvj8lsJDwe/K9O/ASNdnlwrL3BrWQf2qrg03ococTsGABMCK3YW1/byvRYA18N6UEy6M/FCc0LOVZaySk5nipWi4OjbgVY9YdLKrffxEepXk+BlJpixtGKo6/c0fUqA9vTzUYZoe5rKN/WDCsl1Cr/cLD/hS5i0uR1kd5Yx19Nkdlby0vXvUphmgoErEqwjXST4TYCCuuoUSLE/G33xy5jMFiGOnoAHBzd2m+gsGadZJAW51Y8Lr4kqqJ60/eT4GbF/zAeI0rksIg=
+    file: build/*
+    on:
+        repo: stefanoschrs/trabandcamp
+
+after_deploy:
+    - ./after-deploy.sh

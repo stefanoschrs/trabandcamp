@@ -7,5 +7,5 @@ Download tracks from bandcamp **GO** style
 
 Usage
 -
-`./build/trabandcamp-<os>-<arch>[.exe] <Band Name>`
+`./build/trabandcamp-<os>-<arch>[.exe] <Band Name>`    
 *e.g for https://dopethrone.bandcamp.com/ you should run* `./build/trabandcamp-linux-amd64 dopethrone`
