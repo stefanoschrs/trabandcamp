@@ -9,4 +9,3 @@ mkdir -p build
 ### Windows ###
 # (export GOOS=windows; export GOARCH=386; go build -o build/trabandcamp-$GOOS-$GOARCH.exe trabandcamp.go)
 # (export GOOS=windows; export GOARCH=amd64; go build -o build/trabandcamp-$GOOS-$GOARCH.exe trabandcamp.go)
-ls -al build
