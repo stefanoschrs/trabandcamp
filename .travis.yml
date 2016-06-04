@@ -4,7 +4,7 @@ install:
   - go get github.com/parnurzeal/gorequest
 
 before_deploy:
-    - ./before-deploy.sh
+    - ./scripts/before-deploy.sh
 
 deploy:
     provider: releases
@@ -14,7 +14,7 @@ deploy:
         - build/trabandcamp-linux-amd64
     skip_cleanup: true
     on:
-        repo: stefanoschrs/trabandcamp
+        tags: true
 
 after_deploy:
-    - ./after-deploy.sh
+    - ./scripts/after-deploy.sh
