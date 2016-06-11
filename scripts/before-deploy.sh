@@ -3,7 +3,7 @@
 mkdir -p build
 
 ### Linux ###
-(export GOOS=linux; export GOARCH=386; go build -o build/trabandcamp-$GOOS-$GOARCH trabandcamp.go)
+(export GOOS=linux; export GOARCH=386; bash $GOPATH/src/make.bash --no-clean && go build -o build/trabandcamp-$GOOS-$GOARCH trabandcamp.go)
 (export GOOS=linux; export GOARCH=amd64; go build -o build/trabandcamp-$GOOS-$GOARCH trabandcamp.go)
 
 ### Windows ###
