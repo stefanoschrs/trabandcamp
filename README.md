@@ -11,8 +11,9 @@ Download the latest binary from the [releases](https://github.com/stefanoschrs/t
 
 Usage
 -
-`./trabandcamp-<os>-<arch>[.exe] <Band Name>`    
+- `./trabandcamp-<os>-<arch>[.exe] <Band Name>`    
 *e.g for https://dopethrone.bandcamp.com/ on a 64bit Linux you should run* `./trabandcamp-linux-amd64 dopethrone`
+- If you want to change the download directory you can add a `.trabandcamprc` file (there is already a sample one for you to copy)
 
 Development
 -
