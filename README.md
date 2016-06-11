@@ -12,9 +12,10 @@ Download the latest binary from the [releases](https://github.com/stefanoschrs/t
 Usage
 -
 `./trabandcamp-<os>-<arch>[.exe] <Band Name>`    
-*e.g for https://dopethrone.bandcamp.com/ you should run* `./trabandcamp-linux-amd64 dopethrone`
+*e.g for https://dopethrone.bandcamp.com/ on a 64bit Linux you should run* `./trabandcamp-linux-amd64 dopethrone`
 
 Development
 -
 If you want to build the binary yourself  
-`(export GOOS=<Operating System>; export GOARCH=<Architecture>; go build -o build/trabandcamp-$GOOS-$GOARCH trabandcamp.go)`
+`(export GOOS=<Operating System>; export GOARCH=<Architecture>; go build -o build/trabandcamp-$GOOS-$GOARCH trabandcamp.go)`  
+*if you want to target ARM architecture you should also add the GOARM variable*
