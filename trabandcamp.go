@@ -5,7 +5,7 @@ import (
 	"os"
 	"fmt"
 	"path"
-	"time"
+	"sync"
 	"regexp"
 	"strings"
 	"net/http"
@@ -18,19 +18,25 @@ import (
 
 // Configuration object
 type Configuration struct {
-	Directory string `json:directory`
+	Directory string `json:"directory"`
 }
 
 // Track class
 type Track struct {
 	Title 	string 	`json:"title"`
 	FileURL File 	`json:"file"`
+	Album string
 }
 
 // File - Track URL helper class
 type File struct{
 	URL string `json:"mp3-128"`
 }
+
+
+const CONCURRENCY = 4
+var throttle = make(chan int, CONCURRENCY)
+
 
 func _contains(s []string, e string) bool {
     for _, a := range s {
@@ -41,12 +47,61 @@ func _contains(s []string, e string) bool {
     return false
 }
 
+func downloadTrack(path string, track Track, wg *sync.WaitGroup, throttle chan int){
+	defer wg.Done()
+
+	fmt.Printf("[DEBUG] Downloading %s (%s)\n", track.Title, track.Album)
+
+	var fileName = fmt.Sprintf("%s/%s/%s.mp3" , path, track.Album, track.Title)
+	output, err := os.Create(fileName)
+	if err != nil {
+		fmt.Println("[ERROR] Failed creating", fileName, "-", err)
+		return
+	}
+	defer output.Close()
+
+	var url = "https:" + track.FileURL.URL
+	response, err := http.Get(url)
+	if err != nil {
+		fmt.Println("[ERROR] Failed downloading", url, "-", err)
+		return
+	}
+	defer response.Body.Close()
+
+	_, err = io.Copy(output, response.Body)
+	if err != nil {
+		fmt.Println("[ERROR] Failed downloading", url, "-", err)
+		return
+	}
+
+	fmt.Printf("[DEBUG] Successfully Downloaded %s (%s)\n", track.Title, track.Album)
+
+	<-throttle
+}
+
+func fetchAlbumTracks(band string, album string) (tracks []Track) {
+	var url = "https://" + band + ".bandcamp.com" + album
+	_, body, errs := gorequest.New().Get(url).End()
+
+	if errs != nil {
+		fmt.Println("[ERROR] Failed to crawl \"" + url + "\"")
+		return
+	}
+
+	pattern, _ := regexp.Compile(`trackinfo.+}]`)
+	result := pattern.FindString(body)
+
+	json.Unmarshal([]byte(result[strings.Index(result, "[{"):]), &tracks)
+
+	return
+}
+
 func fetchAlbums(band string) (albums []string) {
 	var url = "https://" + band + ".bandcamp.com/music"
 	resp, err := http.Get(url)
 
 	if err != nil {
-		fmt.Println("ERROR: Failed to crawl \"" + url + "\"")
+		fmt.Println("[ERROR] Failed to crawl \"" + url + "\"")
 		return
 	}
 
@@ -81,52 +136,26 @@ func fetchAlbums(band string) (albums []string) {
 	}
 }
 
-func fetchAlbum(band string, album string) (tracks []Track) {
-	var url = "https://" + band + ".bandcamp.com" + album
-	_, body, errs := gorequest.New().Get(url).End()
+func getMusicPathRoot() string {
+	root := path.Dir(os.Args[0]) + "/data"
 
-	if errs != nil {
-		fmt.Println("ERROR: Failed to crawl \"" + url + "\"")
-		return
+	file, err := os.Open(path.Dir(os.Args[0]) + "/.trabandcamprc")
+	if err == nil {
+		decoder := json.NewDecoder(file)
+		configuration := Configuration{}
+		err = decoder.Decode(&configuration)
+		if err != nil {
+			fmt.Println("[ERROR] Cannot parse configuration file.", err)
+			os.Exit(1)
+		}
+
+		root = configuration.Directory
 	}
 
-	pattern, _ := regexp.Compile(`trackinfo.+}]`)
-	result := pattern.FindString(body)
-
-	json.Unmarshal([]byte(result[strings.Index(result, "[{"):]), &tracks)
-
-	return
+	return root
 }
 
-func download(path string, track Track, album string){
-	fmt.Printf("Downloading %s (%s)\n", track.Title, album)
-
-	var fileName = path + "/" + track.Title + ".mp3"
-	output, err := os.Create(fileName)
-	if err != nil {
-		fmt.Println("ERROR: Failed creating", fileName, "-", err)
-		return
-	}
-	defer output.Close()
-
-	var url = "http:" + track.FileURL.URL
-	response, err := http.Get(url)
-	if err != nil {
-		fmt.Println("ERROR: Failed downloading", url, "-", err)
-		return
-	}
-	defer response.Body.Close()
-
-	_, err = io.Copy(output, response.Body)
-	if err != nil {
-		fmt.Println("ERROR: Failed downloading", url, "-", err)
-		return
-	}
-
-	fmt.Printf("Successfully Downloaded %s (%s)\n", track.Title, album)
-}
-
-func checkBandExistance(band string) bool{
+func checkBandExistence(band string) bool{
 	var url = "https://" + band + ".bandcamp.com/music"
 	resp, err := http.Get(url)
 
@@ -136,6 +165,7 @@ func checkBandExistance(band string) bool{
 
 	return true
 }
+
 
 func main(){
 	fmt.Println("                          _                     _")
@@ -148,46 +178,47 @@ func main(){
 	fmt.Println("                                                                     |_| v.0.0.2")
 
 	if len(os.Args) != 2 {
-		fmt.Println("ERROR: Missing Band Name")
+		fmt.Println("[ERROR] Missing Band Name")
 		os.Exit(1)
 	}
 
 	band := os.Args[1]
-	if !checkBandExistance(band){
-		fmt.Printf("ERROR: Band `%s` doesn't exist\n", band)
+	if !checkBandExistence(band) {
+		fmt.Printf("[ERROR] Band `%s` doesn't exist\n", band)
 		os.Exit(1)
 	}
 
-	var musicPath = path.Dir(os.Args[0]) + "/data"
-	file, err := os.Open(path.Dir(os.Args[0]) + "/.trabandcamprc")
-	if err == nil {
-		decoder := json.NewDecoder(file)
-		configuration := Configuration{}
-		err = decoder.Decode(&configuration)
-		if err != nil {
-			fmt.Println("ERROR: Cannot parse configuration file.", err)
-			os.Exit(1)
-		}
-
-		musicPath = configuration.Directory
-	}
+	var musicPath = getMusicPathRoot()
 	musicPath = musicPath + "/" + band
 	os.MkdirAll(musicPath, 0777)
 
-	fmt.Println("Analyzing " + band)
+	fmt.Println("[INFO] Analyzing " + band)
 
 	var albums = fetchAlbums(band)
-	fmt.Printf("Albums: %q\n", albums)
+	fmt.Printf("[INFO] Found %d Albums\n", len(albums))
+	fmt.Printf("[DEBUG] %q\n", albums)
 
+	var tracks []Track
 	for _, album := range albums{
-		var tracks = fetchAlbum(band, album)
-		var albumPath = musicPath + "/" + album[6:]
+		var albumPath = musicPath + "/" + album[7:]
 		os.MkdirAll(albumPath, 0777)
+		tmpTracks := fetchAlbumTracks(band, album)
 
-		for _, v := range tracks{
-			go download(albumPath, v, album[7:])
+		for index := range tmpTracks{
+			tmpTracks[index].Album = album[7:]
 		}
+
+		tracks = append(tracks, tmpTracks...)
+	}
+	fmt.Printf("[INFO] Found %d Tracks\n", len(tracks))
+
+	var wg sync.WaitGroup
+	for _, track := range tracks{
+		throttle <- 1
+		wg.Add(1)
+
+		go downloadTrack(musicPath, track, &wg, throttle)
 	}
 
-	time.Sleep(10 * time.Hour)
+	wg.Wait()
 }
