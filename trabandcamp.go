@@ -56,6 +56,7 @@ func downloadTrack(path string, track Track, wg *sync.WaitGroup, throttle chan i
 	output, err := os.Create(fileName)
 	if err != nil {
 		fmt.Println("[ERROR] Failed creating", fileName, "-", err)
+		<-throttle
 		return
 	}
 	defer output.Close()
@@ -64,6 +65,7 @@ func downloadTrack(path string, track Track, wg *sync.WaitGroup, throttle chan i
 	response, err := http.Get(url)
 	if err != nil {
 		fmt.Println("[ERROR] Failed downloading", url, "-", err)
+		<-throttle
 		return
 	}
 	defer response.Body.Close()
@@ -71,6 +73,7 @@ func downloadTrack(path string, track Track, wg *sync.WaitGroup, throttle chan i
 	_, err = io.Copy(output, response.Body)
 	if err != nil {
 		fmt.Println("[ERROR] Failed downloading", url, "-", err)
+		<-throttle
 		return
 	}
 
