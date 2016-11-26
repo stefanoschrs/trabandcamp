@@ -2,7 +2,8 @@
 	<img src="http://res.cloudinary.com/dkxp3eifs/image/upload/c_scale,w_200/v1465057926/go-bc-logo_ofgay7.png"/>
 </p>
 
-# Trabandcamp [![Build Status](https://travis-ci.org/stefanoschrs/trabandcamp.svg?branch=master)](https://travis-ci.org/stefanoschrs/trabandcamp)
+# Trabandcamp [![Build Status](https://img.shields.io/travis/stefanoschrs/trabandcamp/master.svg?style=flat-square)](https://travis-ci.org/stefanoschrs/trabandcamp) [![License](https://img.shields.io/github/license/stefanoschrs/trabandcamp.svg?style=flat-square)]()
+
 Download tracks from bandcamp **GO** style
 
 Installation
