@@ -6,6 +6,8 @@
 
 Download tracks from bandcamp **GO** style
 
+> *Full documentation can be found at the Trabandcamp's [Wiki Page](https://github.com/stefanoschrs/trabandcamp/wiki)*
+
 Installation
 -
 Download the latest binary from the [releases](https://github.com/stefanoschrs/trabandcamp/releases) page
@@ -21,5 +23,3 @@ Development
 If you want to build the binary yourself  
 `(export GOOS=<Operating System>; export GOARCH=<Architecture>; go build -o build/trabandcamp-$GOOS-$GOARCH trabandcamp.go)`  
 *if you want to target ARM architecture you should also add the GOARM variable*
-
-> *Full documentation can be found at the Trabandcamp's [Wiki Page](https://github.com/stefanoschrs/trabandcamp/wiki)*
