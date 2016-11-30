@@ -1,15 +1,15 @@
 package main
 
 import (
-	"io"
-	"os"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
 	"path"
-	"sync"
 	"regexp"
 	"strings"
-	"net/http"
-	"encoding/json"
+	"sync"
 
 	"golang.org/x/net/html"
 
@@ -23,36 +23,35 @@ type Configuration struct {
 
 // Track class
 type Track struct {
-	Title 	string 	`json:"title"`
-	FileURL File 	`json:"file"`
-	Album string
+	Title   string `json:"title"`
+	FileURL File   `json:"file"`
+	Album   string
 }
 
 // File - Track URL helper class
-type File struct{
+type File struct {
 	URL string `json:"mp3-128"`
 }
 
-
 const CONCURRENCY = 4
+
 var throttle = make(chan int, CONCURRENCY)
 
-
 func _contains(s []string, e string) bool {
-    for _, a := range s {
-        if a == e {
-            return true
-        }
-    }
-    return false
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
 
-func downloadTrack(path string, track Track, wg *sync.WaitGroup, throttle chan int){
+func downloadTrack(path string, track Track, wg *sync.WaitGroup, throttle chan int) {
 	defer wg.Done()
 
 	fmt.Printf("[DEBUG] Downloading %s (%s)\n", track.Title, track.Album)
 
-	var fileName = fmt.Sprintf("%s/%s/%s.mp3" , path, track.Album, track.Title)
+	var fileName = fmt.Sprintf("%s/%s/%s.mp3", path, track.Album, track.Title)
 	output, err := os.Create(fileName)
 	if err != nil {
 		fmt.Println("[ERROR] Failed creating", fileName, "-", err)
@@ -130,7 +129,7 @@ func fetchAlbums(band string) (albums []string) {
 			for _, a := range t.Attr {
 				if a.Key == "href" {
 					href := a.Val
-					if strings.Index(href, "/album") == 0 && !_contains(albums, href){
+					if strings.Index(href, "/album") == 0 && !_contains(albums, href) {
 						albums = append(albums, href)
 					}
 				}
@@ -158,7 +157,7 @@ func getMusicPathRoot() string {
 	return root
 }
 
-func checkBandExistence(band string) bool{
+func checkBandExistence(band string) bool {
 	var url = "https://" + band + ".bandcamp.com/music"
 	resp, err := http.Get(url)
 
@@ -169,8 +168,7 @@ func checkBandExistence(band string) bool{
 	return true
 }
 
-
-func main(){
+func main() {
 	fmt.Println("                          _                     _")
 	fmt.Println("___________              | |                   | |")
 	fmt.Println("\\__    ___/___________   | |__   __ _ _ __   __| | ___ __ _ _ __ ___  _ __")
@@ -202,12 +200,13 @@ func main(){
 	fmt.Printf("[DEBUG] %q\n", albums)
 
 	var tracks []Track
-	for _, album := range albums{
+	for _, album := range albums {
+		fmt.Printf("[DEBUG] Fetching album %s tracks\n", album[7:])
 		var albumPath = musicPath + "/" + album[7:]
 		os.MkdirAll(albumPath, 0777)
 		tmpTracks := fetchAlbumTracks(band, album)
 
-		for index := range tmpTracks{
+		for index := range tmpTracks {
 			tmpTracks[index].Album = album[7:]
 		}
 
@@ -216,7 +215,7 @@ func main(){
 	fmt.Printf("[INFO] Found %d Tracks\n", len(tracks))
 
 	var wg sync.WaitGroup
-	for _, track := range tracks{
+	for _, track := range tracks {
 		throttle <- 1
 		wg.Add(1)
 
