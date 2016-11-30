@@ -1,3 +1,8 @@
 {
-    "directory": "/stefanoschrs/Music"
+	"directory": "/stefanoschrs/Music",
+	"concurrency": {
+		"band" : 1,
+		"album": 1,
+		"track": 4
+	}
 }

@@ -14,11 +14,27 @@ import (
 	"golang.org/x/net/html"
 
 	"github.com/parnurzeal/gorequest"
+	"io/ioutil"
+	"flag"
 )
+
+
+// Flags - Command line arguments
+type Flags struct {
+	ConfigLocation string
+	IgnoreWarnings bool
+}
 
 // Configuration object
 type Configuration struct {
-	Directory string `json:"directory"`
+	Directory string
+	Concurrency ConcurrencyConfiguration
+}
+// ConcurrencyConfiguration object
+type ConcurrencyConfiguration struct{
+	Band int8
+	Album int8
+	Track int8
 }
 
 // Track class
@@ -33,9 +49,18 @@ type File struct {
 	URL string `json:"mp3-128"`
 }
 
-const CONCURRENCY = 4
 
-var throttle = make(chan int, CONCURRENCY)
+var config = Configuration{
+	Directory: path.Dir(os.Args[0]) + "/data",
+	Concurrency: ConcurrencyConfiguration{
+		Band: 1,
+		Album: 1,
+		Track: 4,
+	},
+}
+var flags Flags
+var trackThrottle chan int
+
 
 func _contains(s []string, e string) bool {
 	for _, a := range s {
@@ -168,6 +193,35 @@ func checkBandExistence(band string) bool {
 	return true
 }
 
+func loadConfig() {
+	file, err := ioutil.ReadFile(path.Dir(os.Args[0]) + "/.trabandcamprc")
+	if err != nil {
+		return
+	}
+
+	var tmpConf Configuration
+	if err = json.Unmarshal(file, &tmpConf); err != nil {
+		fmt.Println("parsing config file", err)
+		os.Exit(1)
+	}
+	config = tmpConf
+}
+
+func parseFlags() {
+	configLocation := flag.String("config", path.Dir(os.Args[0]), "Configuration file location")
+	ignoreWarnings := flag.Bool("y", false, "Ignore Warnings")
+
+	flag.Parse()
+
+	flags.IgnoreWarnings = *ignoreWarnings
+	flags.ConfigLocation = *configLocation
+
+	if len(flag.Args()) == 0 {
+		fmt.Println("[ERROR] Missing Band Name/s")
+		os.Exit(1)
+	}
+}
+
 func main() {
 	fmt.Println("                          _                     _")
 	fmt.Println("___________              | |                   | |")
@@ -178,16 +232,24 @@ func main() {
 	fmt.Println("                                                                     | |")
 	fmt.Println("                                                                     |_| v.0.0.2")
 
-	if len(os.Args) != 2 {
-		fmt.Println("[ERROR] Missing Band Name")
+	if len(os.Args) < 2 {
+		fmt.Println("[ERROR] Missing Band Name/s")
 		os.Exit(1)
 	}
+
+	parseFlags()
+	loadConfig()
+
+	fmt.Println(flags, config)
+	os.Exit(0)
 
 	band := os.Args[1]
 	if !checkBandExistence(band) {
 		fmt.Printf("[ERROR] Band `%s` doesn't exist\n", band)
 		os.Exit(1)
 	}
+
+	trackThrottle = make(chan int, config.Concurrency.Track)
 
 	var musicPath = getMusicPathRoot()
 	musicPath = musicPath + "/" + band
@@ -216,10 +278,10 @@ func main() {
 
 	var wg sync.WaitGroup
 	for _, track := range tracks {
-		throttle <- 1
+		trackThrottle <- 1
 		wg.Add(1)
 
-		go downloadTrack(musicPath, track, &wg, throttle)
+		go downloadTrack(musicPath, track, &wg, trackThrottle)
 	}
 
 	wg.Wait()
