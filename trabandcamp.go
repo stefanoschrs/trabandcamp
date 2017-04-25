@@ -1,21 +1,21 @@
 package main
 
 import (
-	"github.com/parnurzeal/gorequest"
+	//"github.com/parnurzeal/gorequest"
 	. "github.com/tj/go-debug"
 
-	"golang.org/x/net/html"
+	//"golang.org/x/net/html"
 
 	"encoding/json"
 	"io/ioutil"
-	"net/http"
-	"strings"
-	"regexp"
+	//"net/http"
+	//"strings"
+	//"regexp"
 	"path"
-	"sync"
+	//"sync"
 	"flag"
 	"fmt"
-	"io"
+	//"io"
 	"os"
 )
 
@@ -37,11 +37,22 @@ type ConcurrencyConfiguration struct{
 	Track int8
 }
 
+// Band class
+type Band struct {
+	Name string
+	Albums []Album
+}
+
+// Album class
+type Album struct {
+	Name string
+	Tracks []Track
+}
+
 // Track class
 type Track struct {
 	Title   string `json:"title"`
 	FileURL File   `json:"file"`
-	Album   string
 }
 
 // File - Track URL helper class
@@ -71,110 +82,110 @@ func _contains(s []string, e string) bool {
 	return false
 }
 
-func downloadTrack(path string, track Track, wg *sync.WaitGroup, throttle chan int) {
-	defer wg.Done()
-
-	fmt.Printf("[DEBUG] Downloading %s (%s)\n", track.Title, track.Album)
-
-	var fileName = fmt.Sprintf("%s/%s/%s.mp3", path, track.Album, track.Title)
-	output, err := os.Create(fileName)
-	if err != nil {
-		fmt.Println("[ERROR] Failed creating", fileName, "-", err)
-		<-throttle
-		return
-	}
-	defer output.Close()
-
-	var url = "https:" + track.FileURL.URL
-	response, err := http.Get(url)
-	if err != nil {
-		fmt.Println("[ERROR] Failed downloading", url, "-", err)
-		<-throttle
-		return
-	}
-	defer response.Body.Close()
-
-	_, err = io.Copy(output, response.Body)
-	if err != nil {
-		fmt.Println("[ERROR] Failed downloading", url, "-", err)
-		<-throttle
-		return
-	}
-
-	fmt.Printf("[DEBUG] Successfully Downloaded %s (%s)\n", track.Title, track.Album)
-
-	<-throttle
-}
-
-func fetchAlbumTracks(band string, album string) (tracks []Track) {
-	var url = "https://" + band + ".bandcamp.com" + album
-	_, body, errs := gorequest.New().Get(url).End()
-
-	if errs != nil {
-		fmt.Println("[ERROR] Failed to crawl \"" + url + "\"")
-		return
-	}
-
-	pattern, _ := regexp.Compile(`trackinfo.+}]`)
-	result := pattern.FindString(body)
-
-	json.Unmarshal([]byte(result[strings.Index(result, "[{"):]), &tracks)
-
-	return
-}
-
-func fetchAlbums(band string) (albums []string) {
-	var url = "https://" + band + ".bandcamp.com/music"
-	resp, err := http.Get(url)
-
-	if err != nil {
-		fmt.Println("[ERROR] Failed to crawl \"" + url + "\"")
-		return
-	}
-
-	b := resp.Body
-	defer b.Close()
-
-	z := html.NewTokenizer(b)
-
-	for {
-		tt := z.Next()
-
-		switch {
-		case tt == html.ErrorToken:
-			return
-		case tt == html.StartTagToken:
-			t := z.Token()
-
-			isAnchor := t.Data == "a"
-			if !isAnchor {
-				continue
-			}
-
-			for _, a := range t.Attr {
-				if a.Key == "href" {
-					href := a.Val
-					if strings.Index(href, "/album") == 0 && !_contains(albums, href) {
-						albums = append(albums, href)
-					}
-				}
-			}
-		}
-	}
-}
-
-func checkBandExistence(band string) bool {
-	debug("Checking %s existence", band)
-
-	var url = "https://" + band + ".bandcamp.com/music"
-	resp, err := http.Get(url)
-
-	if resp.StatusCode != 200 || err != nil {
-		return false
-	}
-
-	return true
-}
+//func downloadTrack(path string, track Track, wg *sync.WaitGroup, throttle chan int) {
+//	defer wg.Done()
+//
+//	fmt.Printf("[DEBUG] Downloading %s (%s)\n", track.Title, track.Album)
+//
+//	var fileName = fmt.Sprintf("%s/%s/%s.mp3", path, track.Album, track.Title)
+//	output, err := os.Create(fileName)
+//	if err != nil {
+//		fmt.Println("[ERROR] Failed creating", fileName, "-", err)
+//		<-throttle
+//		return
+//	}
+//	defer output.Close()
+//
+//	var url = "https:" + track.FileURL.URL
+//	response, err := http.Get(url)
+//	if err != nil {
+//		fmt.Println("[ERROR] Failed downloading", url, "-", err)
+//		<-throttle
+//		return
+//	}
+//	defer response.Body.Close()
+//
+//	_, err = io.Copy(output, response.Body)
+//	if err != nil {
+//		fmt.Println("[ERROR] Failed downloading", url, "-", err)
+//		<-throttle
+//		return
+//	}
+//
+//	fmt.Printf("[DEBUG] Successfully Downloaded %s (%s)\n", track.Title, track.Album)
+//
+//	<-throttle
+//}
+//
+//func fetchAlbumTracks(band string, album string) (tracks []Track) {
+//	var url = "https://" + band + ".bandcamp.com" + album
+//	_, body, errs := gorequest.New().Get(url).End()
+//
+//	if errs != nil {
+//		fmt.Println("[ERROR] Failed to crawl \"" + url + "\"")
+//		return
+//	}
+//
+//	pattern, _ := regexp.Compile(`trackinfo.+}]`)
+//	result := pattern.FindString(body)
+//
+//	json.Unmarshal([]byte(result[strings.Index(result, "[{"):]), &tracks)
+//
+//	return
+//}
+//
+//func fetchAlbums(band string) (albums []string) {
+//	var url = "https://" + band + ".bandcamp.com/music"
+//	resp, err := http.Get(url)
+//
+//	if err != nil {
+//		fmt.Println("[ERROR] Failed to crawl \"" + url + "\"")
+//		return
+//	}
+//
+//	b := resp.Body
+//	defer b.Close()
+//
+//	z := html.NewTokenizer(b)
+//
+//	for {
+//		tt := z.Next()
+//
+//		switch {
+//		case tt == html.ErrorToken:
+//			return
+//		case tt == html.StartTagToken:
+//			t := z.Token()
+//
+//			isAnchor := t.Data == "a"
+//			if !isAnchor {
+//				continue
+//			}
+//
+//			for _, a := range t.Attr {
+//				if a.Key == "href" {
+//					href := a.Val
+//					if strings.Index(href, "/album") == 0 && !_contains(albums, href) {
+//						albums = append(albums, href)
+//					}
+//				}
+//			}
+//		}
+//	}
+//}
+//
+//func checkBandExistence(band string) bool {
+//	debug("Checking %s existence", band)
+//
+//	var url = "https://" + band + ".bandcamp.com/music"
+//	resp, err := http.Get(url)
+//
+//	if resp.StatusCode != 200 || err != nil {
+//		return false
+//	}
+//
+//	return true
+//}
 
 func loadConfig() {
 	file, err := ioutil.ReadFile(flags.ConfigLocation)
@@ -213,7 +224,7 @@ func main() {
 	fmt.Println("  |    |   |  | \\// __ \\_| |_) | (_| | | | | (_| | (_| (_| | | | | | | |_) |")
 	fmt.Println("  |____|   |__|  (____  /|_.__/ \\__,_|_| |_|\\__,_|\\___\\__,_|_| |_| |_| .__/")
 	fmt.Println("                                                                     | |")
-	fmt.Println("                                                                     |_| v.0.0.2")
+	fmt.Println("                                                                     |_| v.0.0.3")
 
 	if len(os.Args) < 2 {
 		fmt.Println("[ERROR] Missing Band Name/s")
@@ -227,31 +238,43 @@ func main() {
 	debug("Config %v", config)
 	debug("Bands %v", flag.Args())
 
-	//for _, band := range flag.Args() {
-	//	if !checkBandExistence(band) {
-	//		fmt.Printf("[ERROR] Band `%s` doesn't exist\n", band)
-	//		os.Exit(1)
-	//	}
-	//}
+	var bands []Band
+	for _, bandName := range flag.Args() {
+		//if !checkBandExistence(band) {
+		//	fmt.Printf("[ERROR] Band `%s` doesn't exist\n", band)
+		//	os.Exit(1)
+		//}
 
-	albums := [3]string{"aa", "bb", "cc"}
-	//var albums []string
-	//for _, band := range flag.Args() {
-	//	fmt.Println("[INFO] Analyzing " + band)
-	//
-	//	var bandAlbums = fetchAlbums(band)
-	//	fmt.Printf("[INFO] Found %d Albums\n", len(bandAlbums))
-	//	//debug("%s: %v", band, bandAlbums)
-	//
-	//	albums = append(albums, bandAlbums...)
-	//}
+		var bandObject Band
+		bandObject.Name = bandName
+		bands = append(bands, bandObject)
+	}
 
-	debug("Albums Found: %d", len(albums))
+	albumCount := 0
+	// TODO: Run the analysis in parallel
+	for index, band := range bands {
+		fmt.Printf("Analyzing %s\n", band.Name)
 
-	if flags.IgnoreWarnings == false && len(albums) > config.AlbumsLimit {
+		//var bandAlbums = fetchAlbums(band)
+		var bandAlbums = []string{"aaaaaaaa","bbbbbbbb"}
+		debug("Band: %s, Albums: %v", band.Name, bandAlbums)
+		fmt.Printf("Found %d Albums\n", len(bandAlbums))
+
+		albumCount = albumCount + len(bandAlbums)
+		for _, albumName := range bandAlbums {
+			var albumObject Album
+			albumObject.Name = albumName
+			bands[index].Albums = append(bands[index].Albums, albumObject)
+		}
+	}
+
+	debug("%v", bands)
+
+	debug("Total albums found: %d", albumCount)
+	if flags.IgnoreWarnings == false && albumCount > config.AlbumsLimit {
 		for {
 			var res string
-			fmt.Printf("Are you sure you want to download %d albums? (Y/n) ", len(albums))
+			fmt.Printf("Are you sure you want to download %d albums? (Y/n) ", albumCount)
 			fmt.Scanln(&res)
 
 			if res == "n" {
@@ -267,8 +290,23 @@ func main() {
 		}
 	}
 
-	os.Exit(0)
 
+	for bandIndex, band := range bands {
+		for albumIndex, album := range band.Albums {
+			debug("Fetching album %s tracks", album.Name[7:])
+
+			//var albumTracks = fetchAlbumTracks(band, album)
+			var albumTracks = []Track{Track{"a", File{"a"}}}
+			for _, track := range albumTracks {
+				bands[bandIndex].
+					Albums[albumIndex].
+					Tracks = append(bands[bandIndex].Albums[albumIndex].Tracks, track)
+			}
+		}
+	}
+	debug("%v", bands)
+	//fmt.Printf("[INFO] Found %d Tracks\n", len(tracks))
+	os.Exit(0)
 
 
 
@@ -283,20 +321,7 @@ func main() {
 	//os.MkdirAll(musicPath, 0777)
 
 
-	//var tracks []Track
-	//for _, album := range albums {
-	//	fmt.Printf("[DEBUG] Fetching album %s tracks\n", album[7:])
-	//	var albumPath = musicPath + "/" + album[7:]
-	//	os.MkdirAll(albumPath, 0777)
-	//	tmpTracks := fetchAlbumTracks(band, album)
-	//
-	//	for index := range tmpTracks {
-	//		tmpTracks[index].Album = album[7:]
-	//	}
-	//
-	//	tracks = append(tracks, tmpTracks...)
-	//}
-	//fmt.Printf("[INFO] Found %d Tracks\n", len(tracks))
+
 	//
 	//var wg sync.WaitGroup
 	//for _, track := range tracks {
