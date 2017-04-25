@@ -1,8 +1,7 @@
 {
-	"directory": "/stefanoschrs/Music",
+	"outputDirectory": "/stefanoschrs/Music",
+	"albumsLimit": 1,
 	"concurrency": {
-		"band" : 1,
-		"album": 1,
 		"track": 4
 	}
 }

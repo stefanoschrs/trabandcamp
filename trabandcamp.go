@@ -1,21 +1,22 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"path"
-	"regexp"
-	"strings"
-	"sync"
+	"github.com/parnurzeal/gorequest"
+	. "github.com/tj/go-debug"
 
 	"golang.org/x/net/html"
 
-	"github.com/parnurzeal/gorequest"
+	"encoding/json"
 	"io/ioutil"
+	"net/http"
+	"strings"
+	"regexp"
+	"path"
+	"sync"
 	"flag"
+	"fmt"
+	"io"
+	"os"
 )
 
 
@@ -27,13 +28,12 @@ type Flags struct {
 
 // Configuration object
 type Configuration struct {
-	Directory string
+	OutputDirectory string
+	AlbumsLimit int
 	Concurrency ConcurrencyConfiguration
 }
 // ConcurrencyConfiguration object
 type ConcurrencyConfiguration struct{
-	Band int8
-	Album int8
 	Track int8
 }
 
@@ -50,11 +50,11 @@ type File struct {
 }
 
 
+var debug = Debug("app")
 var config = Configuration{
-	Directory: path.Dir(os.Args[0]) + "/data",
+	OutputDirectory: path.Dir(os.Args[0]) + "/data",
+	AlbumsLimit: 10,
 	Concurrency: ConcurrencyConfiguration{
-		Band: 1,
-		Album: 1,
 		Track: 4,
 	},
 }
@@ -163,26 +163,9 @@ func fetchAlbums(band string) (albums []string) {
 	}
 }
 
-func getMusicPathRoot() string {
-	root := path.Dir(os.Args[0]) + "/data"
-
-	file, err := os.Open(path.Dir(os.Args[0]) + "/.trabandcamprc")
-	if err == nil {
-		decoder := json.NewDecoder(file)
-		configuration := Configuration{}
-		err = decoder.Decode(&configuration)
-		if err != nil {
-			fmt.Println("[ERROR] Cannot parse configuration file.", err)
-			os.Exit(1)
-		}
-
-		root = configuration.Directory
-	}
-
-	return root
-}
-
 func checkBandExistence(band string) bool {
+	debug("Checking %s existence", band)
+
 	var url = "https://" + band + ".bandcamp.com/music"
 	resp, err := http.Get(url)
 
@@ -194,7 +177,7 @@ func checkBandExistence(band string) bool {
 }
 
 func loadConfig() {
-	file, err := ioutil.ReadFile(path.Dir(os.Args[0]) + "/.trabandcamprc")
+	file, err := ioutil.ReadFile(flags.ConfigLocation)
 	if err != nil {
 		return
 	}
@@ -240,49 +223,88 @@ func main() {
 	parseFlags()
 	loadConfig()
 
-	fmt.Println(flags, config)
+	debug("Flags %v", flags)
+	debug("Config %v", config)
+	debug("Bands %v", flag.Args())
+
+	//for _, band := range flag.Args() {
+	//	if !checkBandExistence(band) {
+	//		fmt.Printf("[ERROR] Band `%s` doesn't exist\n", band)
+	//		os.Exit(1)
+	//	}
+	//}
+
+	albums := [3]string{"aa", "bb", "cc"}
+	//var albums []string
+	//for _, band := range flag.Args() {
+	//	fmt.Println("[INFO] Analyzing " + band)
+	//
+	//	var bandAlbums = fetchAlbums(band)
+	//	fmt.Printf("[INFO] Found %d Albums\n", len(bandAlbums))
+	//	//debug("%s: %v", band, bandAlbums)
+	//
+	//	albums = append(albums, bandAlbums...)
+	//}
+
+	debug("Albums Found: %d", len(albums))
+
+	if flags.IgnoreWarnings == false && len(albums) > config.AlbumsLimit {
+		for {
+			var res string
+			fmt.Printf("Are you sure you want to download %d albums? (Y/n) ", len(albums))
+			fmt.Scanln(&res)
+
+			if res == "n" {
+				fmt.Println("Goodbye!")
+				os.Exit(0)
+			}
+
+			if res == "" || res == "y" {
+				break
+			}
+
+			fmt.Println("Unrecognized command..")
+		}
+	}
+
 	os.Exit(0)
 
-	band := os.Args[1]
-	if !checkBandExistence(band) {
-		fmt.Printf("[ERROR] Band `%s` doesn't exist\n", band)
-		os.Exit(1)
-	}
 
-	trackThrottle = make(chan int, config.Concurrency.Track)
 
-	var musicPath = getMusicPathRoot()
-	musicPath = musicPath + "/" + band
-	os.MkdirAll(musicPath, 0777)
 
-	fmt.Println("[INFO] Analyzing " + band)
 
-	var albums = fetchAlbums(band)
-	fmt.Printf("[INFO] Found %d Albums\n", len(albums))
-	fmt.Printf("[DEBUG] %q\n", albums)
+	//var band string
+	//
+	//trackThrottle = make(chan int, config.Concurrency.Track)
+	//
+	//
+	//var musicPath = config.OutputDirectory
+	//musicPath = musicPath + "/" + band
+	//os.MkdirAll(musicPath, 0777)
 
-	var tracks []Track
-	for _, album := range albums {
-		fmt.Printf("[DEBUG] Fetching album %s tracks\n", album[7:])
-		var albumPath = musicPath + "/" + album[7:]
-		os.MkdirAll(albumPath, 0777)
-		tmpTracks := fetchAlbumTracks(band, album)
 
-		for index := range tmpTracks {
-			tmpTracks[index].Album = album[7:]
-		}
-
-		tracks = append(tracks, tmpTracks...)
-	}
-	fmt.Printf("[INFO] Found %d Tracks\n", len(tracks))
-
-	var wg sync.WaitGroup
-	for _, track := range tracks {
-		trackThrottle <- 1
-		wg.Add(1)
-
-		go downloadTrack(musicPath, track, &wg, trackThrottle)
-	}
-
-	wg.Wait()
+	//var tracks []Track
+	//for _, album := range albums {
+	//	fmt.Printf("[DEBUG] Fetching album %s tracks\n", album[7:])
+	//	var albumPath = musicPath + "/" + album[7:]
+	//	os.MkdirAll(albumPath, 0777)
+	//	tmpTracks := fetchAlbumTracks(band, album)
+	//
+	//	for index := range tmpTracks {
+	//		tmpTracks[index].Album = album[7:]
+	//	}
+	//
+	//	tracks = append(tracks, tmpTracks...)
+	//}
+	//fmt.Printf("[INFO] Found %d Tracks\n", len(tracks))
+	//
+	//var wg sync.WaitGroup
+	//for _, track := range tracks {
+	//	trackThrottle <- 1
+	//	wg.Add(1)
+	//
+	//	go downloadTrack(musicPath, track, &wg, trackThrottle)
+	//}
+	//
+	//wg.Wait()
 }
