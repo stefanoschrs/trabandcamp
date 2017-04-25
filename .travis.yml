@@ -2,6 +2,7 @@ language: go
 
 install:
   - go get github.com/parnurzeal/gorequest
+  - go get github.com/tj/go-debug
 
 before_deploy:
     - ./scripts/before-deploy.sh
